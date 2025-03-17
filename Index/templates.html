@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Resource Planning Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 50px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #fff;
+      padding: 20px 30px;
+      border-radius: 5px;
+      max-width: 700px;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
+    .stakeholder-entry {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 3px;
+      background-color: #fafafa;
+    }
+    .message {
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 3px;
+      color: #fff;
+    }
+    .message.success {
+      background-color: #4CAF50;
+    }
+    .message.error {
+      background-color: #f44336;
+    }
+    button, input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover, input[type="submit"]:hover {
+      background-color: #45a049;
+    }
+    /* Stijlen voor de add stakeholder-knop */
+    #add-stakeholder-btn {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Project Resource Planning Form</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      
+      <div class="form-group">
+        <label for="{{ form.project_name.id }}">Projectnaam</label>
+        {{ form.project_name(id=form.project_name.id) }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.goal_scope.id }}">Doel en Scope (SMART)</label>
+        {{ form.goal_scope(id=form.goal_scope.id, rows=5) }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.project_leader.id }}">Projectleider</label>
+        {{ form.project_leader(id=form.project_leader.id) }}
+      </div>
+      
+      <h2>Stakeholders</h2>
+      <div id="stakeholder-entries-container">
+        {% for entry in form.stakeholder_entries %}
+          <div class="stakeholder-entry">
+            <div class="form-group">
+              <label for="{{ entry.stakeholder.id }}">Stakeholder</label>
+              {{ entry.stakeholder(id=entry.stakeholder.id) }}
+            </div>
+            <div class="form-group">
+              <label for="{{ entry.hours.id }}">Aantal Uren</label>
+              {{ entry.hours(id=entry.hours.id) }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <!-- Knop om een nieuwe stakeholder-entry toe te voegen -->
+      <button type="button" id="add-stakeholder-btn">Add Stakeholder</button>
+      
+      <div class="form-group">
+        {{ form.submit() }}
+      </div>
+    </form>
+    
+    <!-- Verborgen template voor een nieuwe stakeholder-entry -->
+    <div class="stakeholder-entry" id="stakeholder-template" style="display: none;">
+      <div class="form-group">
+        <label>Stakeholder</label>
+        <select name="stakeholder_entries-__INDEX__-stakeholder">
+          {% for emp in employees %}
+            <option value="{{ emp }}">{{ emp }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Aantal Uren</label>
+        <input type="number" step="any" name="stakeholder_entries-__INDEX__-hours">
+      </div>
+    </div>
+    
+    <script>
+      // Beginindex instellen op het aantal bestaande entries (kan 0 zijn)
+      let index = {{ form.stakeholder_entries|length }};
+      document.getElementById('add-stakeholder-btn').addEventListener('click', function(e){
+          e.preventDefault();
+          let container = document.getElementById('stakeholder-entries-container');
+          let template = document.getElementById('stakeholder-template');
+          let newEntry = template.cloneNode(true);
+          newEntry.style.display = 'block';
+          newEntry.removeAttribute('id');
+          // Vervang de placeholder __INDEX__ door de huidige index
+          newEntry.innerHTML = newEntry.innerHTML.replace(/__INDEX__/g, index);
+          container.appendChild(newEntry);
+          index++;
+      });
+    </script>
+  </div>
+</body>
+</html>
