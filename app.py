@@ -10,25 +10,22 @@ import traceback
 import pandas as pd
 import numpy as np
 
-# Read the data starting from row 4, with row 4 as header
-data = pd.read_csv('data/Portfolio 2025(Portfolio 2025).csv', sep = ";", skiprows = 4)
-#remove all unnamed columns
+# Lees de data
+data = pd.read_csv('data/Portfolio 2025(Portfolio 2025).csv', sep=";", skiprows=4)
 data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
-data.iloc[:,0] = data.iloc[:,0].ffill()
-data = data[data['Programma\'s'] == 'Q2']
-#only keep Digitale klantreis, Klantsuccess, Marketingtransformatie, Digitale transformatie
+data.iloc[:, 0] = data.iloc[:, 0].ffill()
+data = data[data["Programma's"] == 'Q2']
 data = data[['Digitale klantreis', 'Klantsucces', 'Marketingtransformatie', 'Digitale transformatie']]
 df_dict = data.to_dict(orient="list")
-
-# Verwijder NaN waarden uit de dictionary
 df_dict_clean = {key: [value for value in values if not (isinstance(value, float) and np.isnan(value))] for key, values in df_dict.items()}
+
 # Configureer logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialiseer de Flask-app en stel de template-folder in
+# Initialiseer Flask-app
 app = Flask(__name__, template_folder='templates')
-app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5'  # Zorg voor een unieke sleutel
+app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5'
 
 # Configureer SQL Server-verbinding
 try:
@@ -41,29 +38,17 @@ try:
     )
     app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pyodbc:///?odbc_connect={params}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    logger.info("Database URI geconfigureerd: %s", app.config['SQLALCHEMY_DATABASE_URI'])
+    logger.info("Database URI geconfigureerd")
 except Exception as e:
-    logger.error("Fout bij het configureren van de database URI: %s", str(e))
-    traceback.print_exc()
+    logger.error("Fout bij configureren database URI: %s", str(e))
     raise
 
-# Initialiseer de database
-try:
-    db = SQLAlchemy(app)
-    logger.info("SQLAlchemy succesvol geïnitialiseerd.")
-except Exception as e:
-    logger.error("Fout bij het initialiseren van SQLAlchemy: %s", str(e))
-    traceback.print_exc()
-    raise
+# Initialiseer database
+db = SQLAlchemy(app)
 
-# Dictionary met projecten per programma
-projecten = {key: [value for value in values if not (isinstance(value, float) and np.isnan(value))] for key, values in df_dict.items()}
-
-# Maak een reverse mapping: project -> categorie (programmas)
-project_to_category = {}
-for category, projects in projecten.items():
-    for project in projects:
-        project_to_category[project] = category
+# Projecten en mapping
+projecten = df_dict_clean
+project_to_category = {project: category for category, projects in projecten.items() for project in projects}
 
 # Lijst met medewerkers voor de selectvelden
 EMPLOYEES = [
@@ -316,7 +301,7 @@ EMPLOYEES = [
     "Emil Szczepaniak"
 ]
 
-# Definieer het database model
+# Database model
 class Project(db.Model):
     __tablename__ = 'projects_staging'
     id = db.Column(db.Integer, primary_key=True)
@@ -326,89 +311,98 @@ class Project(db.Model):
     stakeholder_hours = db.Column(db.Text, nullable=False)
     programmas = db.Column(db.String(100), nullable=True)
 
-# --- Definieer het hoofdformulier ---
+# Formulieren
 class StakeholderEntryForm(FlaskForm):
-    stakeholder = SelectField('Stakeholder', choices=[(emp, emp) for emp in EMPLOYEES], validators=[DataRequired()])
-    hours = FloatField('Aantal Uren', validators=[DataRequired()])
+    stakeholder = SelectField('Stakeholder', choices=[(emp, emp) for emp in EMPLOYEES], validators=[DataRequired(message="Selecteer een stakeholder")])
+    hours = FloatField('Aantal Uren', validators=[DataRequired(message="Vul het aantal uren in")])
+    # Schakel CSRF uit voor dit subformulier
+    class Meta:
+        csrf = False
 
 class ProjectForm(FlaskForm):
-    project_name = SelectField('Project', choices=[], validators=[DataRequired()])
-    goal_scope = TextAreaField('Projectdoelstelling + PBI', validators=[DataRequired()])
-    project_leader = SelectField('Projectleider', choices=[(emp, emp) for emp in EMPLOYEES], validators=[DataRequired()])
-    stakeholder_entries = FieldList(FormField(StakeholderEntryForm), min_entries=0, max_entries=50)
-    
-    # Voeg programmas als readonly veld toe
-    programmas = StringField('Programma', render_kw={"readonly": True})  # readonly zodat het niet door de gebruiker bewerkt kan worden
-    
+    project_name = SelectField('Project', choices=[], validators=[DataRequired(message="Selecteer een project")])
+    goal_scope = TextAreaField('Projectdoelstelling + PBI', validators=[DataRequired(message="Vul de doelstelling in")])
+    project_leader = SelectField('Projectleider', choices=[(emp, emp) for emp in EMPLOYEES], validators=[DataRequired(message="Selecteer een projectleider")])
+    stakeholder_entries = FieldList(FormField(StakeholderEntryForm), min_entries=1, validators=[DataRequired(message="Voeg minimaal één stakeholder toe")])
+    programmas = StringField('Programma', render_kw={"readonly": True})
     submit = SubmitField('Project indienen')
 
-
-# Route voor het formulier
+# Route
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = ProjectForm()
-
-    # Dynamisch aanpassen van projecten op basis van geselecteerd project
-    if form.project_name.data:
-        selected_project = form.project_name.data
-        programmas = project_to_category.get(selected_project, "")
-    else:
-        programmas = ""
-
-    # Dynamisch vullen van de projecten afhankelijk van de projecten dictionary
-    project_choices = [(project, project) for project in sum(projecten.values(), [])] # Alle projecten
+    project_choices = [(project, project) for project in sum(projecten.values(), [])]
     form.project_name.choices = project_choices
 
-    if form.validate_on_submit():
-        # Bepaal het gekoppelde programma op basis van het gekozen project
+    # Stel programma in op basis van geselecteerd project
+    if form.project_name.data:
         selected_project = form.project_name.data
-        associated_programmas = project_to_category.get(selected_project, "")
-        # Voeg het bijbehorende programma toe aan het project
-        programmas = associated_programmas
+        form.programmas.data = project_to_category.get(selected_project, "")
+    else:
+        form.programmas.data = ""
 
-        try:
-            project_name = selected_project
-            goal_scope = form.goal_scope.data
-            project_leader = form.project_leader.data
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            try:
+                # Haal gegevens op
+                project_name = form.project_name.data
+                goal_scope = form.goal_scope.data
+                project_leader = form.project_leader.data
+                programmas = project_to_category.get(project_name, "")
 
-            # Bouw een dictionary met de ingevulde stakeholder-uren
-            stakeholder_hours = {}
-            for entry in form.stakeholder_entries.entries:
-                stakeholder = entry.form.stakeholder.data
-                hours = entry.form.hours.data
-                if stakeholder and hours is not None:
-                    stakeholder_hours[stakeholder] = hours
+                # Controleer stakeholder-uren
+                stakeholder_hours = {}
+                for entry in form.stakeholder_entries.entries:
+                    stakeholder = entry.form.stakeholder.data
+                    hours = entry.form.hours.data
+                    if stakeholder and hours is not None:
+                        stakeholder_hours[stakeholder] = hours
+                    else:
+                        flash("Alle stakeholder-velden moeten volledig ingevuld zijn.", "error")
+                        return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
-            # Zoek naar een bestaand project op basis van projectnaam
-            project = Project.query.filter_by(project_name=project_name).first()
-            if project:
-                current_hours = json.loads(project.stakeholder_hours)
-                current_hours.update(stakeholder_hours)
-                project.stakeholder_hours = json.dumps(current_hours)
-                project.programmas = programmas
-            else:
-                project = Project(
-                    project_name=project_name,
-                    goal_scope=goal_scope,
-                    project_leader=project_leader,
-                    stakeholder_hours=json.dumps(stakeholder_hours),
-                    programmas=programmas
-                )
-                db.session.add(project)
+                # Controleer of er minimaal één stakeholder is
+                if not stakeholder_hours:
+                    flash("Voeg minimaal één stakeholder met uren toe.", "error")
+                    return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
-            db.session.commit()
-            flash('Projectgegevens succesvol opgeslagen!', 'success')
-            logger.info("Project '%s' opgeslagen met stakeholders: %s en programmas: %s", project_name, stakeholder_hours, programmas)
-            return redirect(url_for('index'))
-        except Exception as e:
-            logger.error("Fout bij het opslaan van projectgegevens: %s", str(e))
-            traceback.print_exc()
-            flash('Fout bij het opslaan: ' + str(e), 'error')
-            db.session.rollback()
-            return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
+                # Database logica
+                project = Project.query.filter_by(project_name=project_name).first()
+                if project:
+                    current_hours = json.loads(project.stakeholder_hours)
+                    current_hours.update(stakeholder_hours)
+                    project.stakeholder_hours = json.dumps(current_hours)
+                    project.goal_scope = goal_scope
+                    project.project_leader = project_leader
+                    project.programmas = programmas
+                else:
+                    project = Project(
+                        project_name=project_name,
+                        goal_scope=goal_scope,
+                        project_leader=project_leader,
+                        stakeholder_hours=json.dumps(stakeholder_hours),
+                        programmas=programmas
+                    )
+                    db.session.add(project)
+
+                db.session.commit()
+                flash('Projectgegevens succesvol opgeslagen!', 'success')
+                logger.info("Project '%s' opgeslagen met stakeholders: %s", project_name, stakeholder_hours)
+                return redirect(url_for('index'))
+
+            except Exception as e:
+                logger.error("Fout bij opslaan: %s", str(e))
+                flash(f"Fout bij het opslaan: {str(e)}", "error")
+                db.session.rollback()
+        else:
+            # Geef specifieke foutmeldingen weer
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f"Fout in {field}: {error}", "error")
+            logger.warning("Formulier validatie mislukt: %s", form.errors)
+
     return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
-# Start de applicatie
 if __name__ == '__main__':
     logger.info("Starting Flask application...")
     app.run(debug=False, use_reloader=False)
