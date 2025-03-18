@@ -350,20 +350,26 @@ def index():
                 project_leader = form.project_leader.data
                 programmas = project_to_category.get(project_name, "")
 
-                # Controleer stakeholder-uren
+                # Controleer stakeholder-uren en zoek naar duplicaten
                 stakeholder_hours = {}
+                stakeholders_seen = set()  # Houd bij welke stakeholders al zijn ingevoerd
                 for entry in form.stakeholder_entries.entries:
                     stakeholder = entry.form.stakeholder.data
                     hours = entry.form.hours.data
                     if stakeholder and hours is not None:
+                        # Controleer op duplicaten
+                        if stakeholder in stakeholders_seen:
+                            flash(f"Dubbele stakeholder '{stakeholder}' gedetecteerd. Pas het formulier aan om duplicaten te vermijden.", "error")
+                            return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
+                        stakeholders_seen.add(stakeholder)
                         stakeholder_hours[stakeholder] = hours
                     else:
                         flash("Alle stakeholder-velden moeten volledig ingevuld zijn.", "error")
                         return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
                 # Controleer of er minimaal één stakeholder is
-                if not stakeholder_hours:
-                    flash("Voeg minimaal één stakeholder met uren toe.", "error")
+                if len(stakeholders_seen) != len(form.stakeholder_entries.entries):
+                    flash("Voeg minimaal één stakeholder met uren toe en zorg ervoor dat er geen duplicaten zijn.", "error")
                     return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
                 # Database logica
