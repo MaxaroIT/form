@@ -333,7 +333,7 @@ class StakeholderEntryForm(FlaskForm):
 
 class ProjectForm(FlaskForm):
     project_name = SelectField('Project', choices=[], validators=[DataRequired()])
-    goal_scope = TextAreaField('Doel en Scope (SMART)', validators=[DataRequired()])
+    goal_scope = TextAreaField('Projectdoelstelling + PBI', validators=[DataRequired()])
     project_leader = SelectField('Projectleider', choices=[(emp, emp) for emp in EMPLOYEES], validators=[DataRequired()])
     stakeholder_entries = FieldList(FormField(StakeholderEntryForm), min_entries=0, max_entries=50)
     
