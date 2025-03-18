@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 logger = logging.getLogger(__name__)
 
 # Initialiseer de Flask-app en stel de template-folder in
-app = Flask(__name__, template_folder='Index')
+app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5'  # Zorg voor een unieke sleutel
 
 # Configureer SQL Server-verbinding
@@ -209,8 +209,8 @@ def index():
             traceback.print_exc()
             flash('Fout bij het opslaan: ' + str(e), 'error')
             db.session.rollback()
-            return render_template('templates.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
-    return render_template('templates.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
+            return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
+    return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
 # Start de applicatie
 if __name__ == '__main__':
