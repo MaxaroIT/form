@@ -51,7 +51,7 @@ projecten = df_dict_clean
 project_to_category = {project: category for category, projects in projecten.items() for project in projects}
 
 # Lijst met medewerkers voor de selectvelden
-['Admin Havermans',
+EMPLOYEES = ['Admin Havermans',
  'Robin Jaspers',
  'Britt van Lieshout',
  'Nikki Schoonen',
