@@ -7,7 +7,21 @@ import json
 import urllib.parse
 import logging
 import traceback
+import pandas as pd
+import numpy as np
 
+# Read the data starting from row 4, with row 4 as header
+data = pd.read_csv('data/Portfolio 2025(Portfolio 2025).csv', sep = ";", skiprows = 4)
+#remove all unnamed columns
+data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
+data.iloc[:,0] = data.iloc[:,0].ffill()
+data = data[data['Programma\'s'] == 'Q2']
+#only keep Digitale klantreis, Klantsuccess, Marketingtransformatie, Digitale transformatie
+data = data[['Digitale klantreis', 'Klantsucces', 'Marketingtransformatie', 'Digitale transformatie']]
+df_dict = data.to_dict(orient="list")
+
+# Verwijder NaN waarden uit de dictionary
+df_dict_clean = {key: [value for value in values if not (isinstance(value, float) and np.isnan(value))] for key, values in df_dict.items()}
 # Configureer logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -43,70 +57,7 @@ except Exception as e:
     raise
 
 # Dictionary met projecten per programma
-projecten = {
-    "Digitale klantreis": [
-        "Droombadkamerformulier",
-        "Uitbreidingen Mabo / Mijn Maxaro",
-        "Top 5 talen online",
-        "Customer Journey Onderzoek",
-        "Meubelconfigurator",
-        "Badkamer Varianttool",
-        "Keuzehulp complete ruimtes",
-        "Zoekfunctie implementatie",
-        "CDP onderzoek",
-        "Inzet van AR/360",
-        "Mirror website",
-        "Exploded views",
-        "Technische tekeningen",
-        "Configurator CMS"
-    ],
-    "Klantsucces": [
-        "D365 contact center (inventarisatie)",
-        "Procesinventarisatie aftersales",
-        "Geautomatiseerde mailing",
-        "Introduceren wandpanelen",
-        "Chatbot Max",
-        "Luxe meubel serie"
-    ],
-    "Marketingtransformatie": [
-        "Inrichting Google Analytics 4 (GA4)",
-        "Automatisering complete ruimtes",
-        "Rebranding website",
-        "Bedrijfsvideo (opzet)",
-        "Ombouw showroom HFD & RSD",
-        "Nieuwe standaard doucherenders",
-        "Strategie Social, SEO en SEA",
-        "Branding Showroom UTR/RTD/MOR",
-        "Productvideo's (onderzoek)",
-        "Installatie video's (inventarisatie)",
-        "Technische detailrenders",
-        "Automatiseren detailrenders",
-        "Onderzoek in-store tafel vloersamples"
-    ],
-    "Digitale transformatie": [
-        "Dual Write",
-        "Order API",
-        "VST API",
-        "Xelion API dashboard",
-        "Intercompany Sync",
-        "Auto release to warehouse",
-        "OPS release Q1",
-        "Location Management 2.0",
-        "Manus 5.0",
-        "SharePoint Basis + POC",
-        "Microsoft Copilot (onderzoek)",
-        "Artikelbeheer automatisering PvA"
-    ],
-    "Organisatie & Cultuur": [
-        "O&O (inventarisatie)",
-        "Projectmanagement 3.0 Monday",
-        "Vernieuwde scaling-up structuur",
-        "Telefonie KPI sales afgestemd",
-        "Verzilvering opgeleverde projecten",
-        "Contractbeheer Tool (inventarisatie)",
-        "Uniformiteit opportunities (sales)"
-    ]
-}
+projecten = {key: [value for value in values if not (isinstance(value, float) and np.isnan(value))] for key, values in df_dict.items()}
 
 # Maak een reverse mapping: project -> categorie (programmas)
 project_to_category = {}
