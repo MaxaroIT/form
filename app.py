@@ -51,7 +51,7 @@ projecten = df_dict_clean
 project_to_category = {project: category for category, projects in projecten.items() for project in projects}
 
 # Lijst met medewerkers voor de selectvelden
-EMPLOYEES = ['Admin Havermans',
+EMPLOYEES = [
  'Robin Jaspers',
  'Britt van Lieshout',
  'Nikki Schoonen',
@@ -108,7 +108,6 @@ EMPLOYEES = ['Admin Havermans',
  'Stephanie van Kaam',
  'Remon Awanis',
  'Jessica Dorrestein',
- 'Martin Ultee',
  'Ben Antiri',
  'Amber Groen',
  'Julien Vianen',
@@ -120,11 +119,9 @@ EMPLOYEES = ['Admin Havermans',
  'Jimmy Havermans',
  'Marcelina Peksa',
  'Björn Zaadnoordijk',
- 'Admin Schoone',
  'Patrick Auperlé',
  'Koen Polus',
  'Bas Fokkema',
- 'adm mouwen',
  'Giovanny Berkers',
  'Brigitte Bartelen',
  'Annemarie Lammertsma',
@@ -154,9 +151,6 @@ EMPLOYEES = ['Admin Havermans',
  'Sofia Maiga',
  'Felizia Geurts',
  'Theresia de Reus - Van der Geer',
- 'Maxaro Keukens',
- 'Maxaro Transport',
- 'Bart de Rammelaere',
  'Ruthjedi-Ann Offerman',
  'Bas Pool',
  'Lizelinde Verschuuren',
@@ -171,7 +165,6 @@ EMPLOYEES = ['Admin Havermans',
  'Christiaan Stemgèe',
  'Peggy Smit',
  'Luko Nooren',
- 'Virtual Entity',
  'Danique de Boer',
  'Kim Videler',
  'Danny Herbig',
@@ -203,7 +196,6 @@ EMPLOYEES = ['Admin Havermans',
  'Bryan Helms',
  'Esra Schagen',
  'Mike van den Boom',
- 'Nooren Vloeren',
  'Roumaissa Chouay',
  'Aman Samoedj',
  'Hayat Boukhriss',
@@ -238,7 +230,6 @@ EMPLOYEES = ['Admin Havermans',
  'Thijs Berg',
  'Beau Drijdijk',
  'Quincy Lindeborg',
- 'Ad Ultima',
  'Maeike Deijkers',
  'John van der Jagt',
  'Dikra Kaddouri',
@@ -270,17 +261,14 @@ EMPLOYEES = ['Admin Havermans',
  'Orkun Akdemir',
  'Shale Shams',
  'Wassim Bouazza',
- 'Ann De Bal',
  'Constantin Juravle',
  'Eva Kommers',
  'Ruben Gil Beco',
  'Arian Nefs',
- 'Admin Veeken',
  'Jesse Biney',
  'David van Laarhoven',
  'Daan Helmons',
  'Jörgen Zaadnoordijk',
- 'Admin Antiri',
  'Mark Vermeulen',
  'Serpil Sekman']
 
@@ -356,23 +344,14 @@ def index():
                     return render_template('index.html', form=form, employees=EMPLOYEES, project_mapping=project_to_category)
 
                 # Database logica
-                project = Project.query.filter_by(project_name=project_name).first()
-                if project:
-                    current_hours = json.loads(project.stakeholder_hours)
-                    current_hours.update(stakeholder_hours)
-                    project.stakeholder_hours = json.dumps(current_hours)
-                    project.goal_scope = goal_scope
-                    project.project_leader = project_leader
-                    project.programmas = programmas
-                else:
-                    project = Project(
-                        project_name=project_name,
-                        goal_scope=goal_scope,
-                        project_leader=project_leader,
-                        stakeholder_hours=json.dumps(stakeholder_hours),
-                        programmas=programmas
+                project = Project(
+                    project_name=project_name,
+                    goal_scope=goal_scope,
+                    project_leader=project_leader,
+                    stakeholder_hours=json.dumps(stakeholder_hours),
+                    programmas=programmas
                     )
-                    db.session.add(project)
+                db.session.add(project)
 
                 db.session.commit()
                 flash('Projectgegevens succesvol opgeslagen!', 'success')
