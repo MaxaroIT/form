@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Resource Planning Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 50px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #003e51;
+      padding: 20px 30px;
+      border-radius: 5px;
+      max-width: 700px;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    /* Logo centreren */
+    .logo {
+      display: block;
+      margin: 0 auto 20px auto;
+      width: 200px;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #fff;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .stakeholder-entry label {
+      color: #000;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
+    .stakeholder-entry {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 3px;
+      background-color: #fafafa;
+      color: #000 !important;
+    }
+    .remove-entry {
+      display: block;
+      width: auto;
+      background-color: #f44336;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      padding: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .message {
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 3px;
+      color: #fff;
+    }
+    .message.success {
+      background-color: #4CAF50;
+    }
+    .message.error {
+      background-color: #f44336;
+    }
+    button, input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #FF7300;
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover, input[type="submit"]:hover {
+      background-color: #FF7300;
+    }
+    #add-stakeholder-btn {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo -->
+    <img src="/static/images/logo.png" alt="Logo" class="logo">
+
+    <h1>Project Resource Planning</h1>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="message {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST">
+      {{ form.hidden_tag() }}
+      
+      <!-- Project dropdown -->
+      <div class="form-group">
+        <label for="{{ form.project_name.id }}">{{ form.project_name.label.text }}</label>
+        {{ form.project_name(id=form.project_name.id) }}
+      </div>
+      
+      <!-- Nieuw readonly veld voor Programma -->
+<!-- Nieuw readonly veld voor Programma -->
+        <div class="form-group">
+          <label for="{{ form.programmas.id }}">Programma</label>
+          <input type="text" id="{{ form.programmas.id }}" name="programmas" readonly="readonly" value="{{ form.programmas.data }}">
+        </div>
+
+      
+      <div class="form-group">
+        <label for="{{ form.goal_scope.id }}">{{ form.goal_scope.label.text }}</label>
+        {{ form.goal_scope(id=form.goal_scope.id, rows=20) }}
+      </div>
+      
+      <div class="form-group">
+        <label for="{{ form.project_leader.id }}">{{ form.project_leader.label.text }}</label>
+        {{ form.project_leader(id=form.project_leader.id) }}
+      </div>
+      
+      <h2>Stakeholders</h2>
+      <div id="stakeholder-entries-container">
+        {% for entry in form.stakeholder_entries %}
+          <div class="stakeholder-entry">
+            <div class="form-group">
+              <label for="{{ entry.stakeholder.id }}">Stakeholder</label>
+              {{ entry.stakeholder(id=entry.stakeholder.id) }}
+            </div>
+            <div class="form-group">
+              <label for="{{ entry.hours.id }}">Aantal Uren</label>
+              {{ entry.hours(id=entry.hours.id) }}
+            </div>
+            <div class="form-group">
+              <button type="button" class="remove-entry">Verwijder</button>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <!-- Knop om een nieuwe stakeholder-entry toe te voegen -->
+      <button type="button" id="add-stakeholder-btn">Toevoegen stakeholder</button>
+      
+      <div class="form-group">
+        {{ form.submit() }}
+      </div>
+    </form>
+    
+    <!-- Verborgen template voor een nieuwe stakeholder-entry -->
+    <div class="stakeholder-entry" id="stakeholder-template" style="display: none;">
+      <div class="form-group">
+        <label>Stakeholder</label>
+        <select name="stakeholder_entries-__INDEX__-stakeholder">
+          {% for emp in employees %}
+            <option value="{{ emp }}">{{ emp }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Aantal Uren</label>
+        <input type="number" step="any" name="stakeholder_entries-__INDEX__-hours">
+      </div>
+      <div class="form-group">
+        <button type="button" class="remove-entry">Verwijder</button>
+      </div>
+    </div>
+    
+    <script>
+      // Beginindex instellen op het aantal bestaande entries (kan 0 zijn)
+      let index = parseInt("{{ form.stakeholder_entries|length }}", 10);
+
+      document.getElementById('add-stakeholder-btn').addEventListener('click', function(e) {
+          e.preventDefault();
+          let container = document.getElementById('stakeholder-entries-container');
+          let template = document.getElementById('stakeholder-template');
+          let newEntry = template.cloneNode(true);
+          newEntry.style.display = 'block';
+          newEntry.removeAttribute('id');
+          // Vervang de placeholder __INDEX__ door de huidige index
+          newEntry.innerHTML = newEntry.innerHTML.replace(/__INDEX__/g, index);
+          container.appendChild(newEntry);
+          index++;
+      });
+
+      // Event delegation voor de verwijderknoppen
+      document.getElementById('stakeholder-entries-container').addEventListener('click', function(e) {
+          if (e.target && e.target.classList.contains('remove-entry')) {
+              e.preventDefault();
+              e.target.closest('.stakeholder-entry').remove();
+          }
+      });
+
+      // Update het 'Programma'-veld bij verandering in het project dropdownmenu
+      const projectSelect = document.getElementById('{{ form.project_name.id }}');
+      const programmasField = document.getElementById('{{ form.programmas.id }}');
+      // De mapping wordt verwacht vanuit de view als een JSON-string, die we parsen
+      const projectMapping = JSON.parse('{{ project_mapping | tojson | safe }}');
+
+      projectSelect.addEventListener('change', function() {
+          const selectedProject = this.value;
+          programmasField.value = projectMapping[selectedProject] || '';
+      });
+
+      // Zorg dat het 'Programma'-veld ook bij paginalading de juiste waarde toont
+      document.addEventListener('DOMContentLoaded', function() {
+          const event = new Event('change');
+          projectSelect.dispatchEvent(event);
+      });
+    </script>
+  </div>
+</body>
+</html>
+
