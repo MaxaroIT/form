@@ -272,6 +272,10 @@ EMPLOYEES = [
  'Mark Vermeulen',
  'Serpil Sekman']
 
+#EMPLOYEES on alphabetical order
+EMPLOYEES = sorted(EMPLOYEES)
+
+
 # Database model
 class Project(db.Model):
     __tablename__ = 'projects_staging'
