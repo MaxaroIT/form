@@ -15,7 +15,7 @@ data = pd.read_csv('data/Portfolio 2025(Portfolio 2025).csv', sep=";", skiprows=
 data = data.loc[:, ~data.columns.str.contains('^Unnamed')]
 data.iloc[:, 0] = data.iloc[:, 0].ffill()
 data = data[data["Programma's"] == 'Q2']
-data = data[['Digitale klantreis', 'Klantsucces', 'Marketingtransformatie', 'Digitale transformatie']]
+data = data[['Digitale klantreis', 'Klantsucces', 'Marketingtransformatie', 'Digitale transformatie','Organisatie & Cultuur']]
 df_dict = data.to_dict(orient="list")
 df_dict_clean = {key: [value for value in values if not (isinstance(value, float) and np.isnan(value))] for key, values in df_dict.items()}
 
